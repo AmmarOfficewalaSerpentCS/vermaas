@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="wiz_sale_order_line_import_view_form" model="ir.ui.view">
+        <field name="name">wiz.sale.order.line.import.view.form</field>
+        <field name="model">wiz.sale.order.line.import</field>
+        <field name="arch" type="xml">
+            <form string="">
+                <sheet>
+                    <group col="6">
+                        <field name="import_file" filename="file_name" />
+                        <field name="file_name" invisible="1"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button string="Import" name="import_line_file" type="object" class="oe_highlight" />
+                    <button string="Cancle" specical="cancle" />
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="wiz_sale_order_line_import_action" model="ir.actions.act_window">
+        <field name="name">Sale Line Import</field>
+        <field name="res_model">wiz.sale.order.line.import</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

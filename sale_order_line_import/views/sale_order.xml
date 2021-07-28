@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_order_form_inherit_sale_order_line_import" model="ir.ui.view">
+        <field name="name">view.order.form.form.inherit</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <button name="payment_action_capture" position="after">
+                <button name="%(sale_order_line_import.wiz_sale_order_line_import_action)d" type="action" string="Import SO Line" class="oe_highlight" />
+            </button>
+        </field>
+    </record>
+
+</odoo>
