@@ -20,9 +20,11 @@ class WizBranchWarehouse(models.TransientModel):
             if filename and filename[-1] != "xls" and filename[-1] != "xlsx":
                 raise UserError(_("You can attach only excle file."))
 
-    def _create_bom_products(self, product_obj, data_list):
+    def _create_bom_products(self, product_obj, data_list, total=0, qty=1):
         componet_id = False
-        componet_id = product_obj.search([("name", "=", str(data_list[12]))], limit=1)
+        new_product = False
+        componet_id = product_obj.search(
+            [("name", "=", str(data_list[12]))], limit=1)
         values = {
             "name": data_list[12],
             "sale_ok": True,
@@ -31,8 +33,10 @@ class WizBranchWarehouse(models.TransientModel):
         }
         if not componet_id:
             componet_id = product_obj.create(values)
+            new_product = componet_id
         else:
             componet_id.write(values)
+        total += (componet_id.lst_price * (data_list[13] / qty))
         return tuple(
             (
                 0,
@@ -42,7 +46,7 @@ class WizBranchWarehouse(models.TransientModel):
                     "product_qty": data_list[13],
                 },
             )
-        )
+        ), new_product, total
 
     def _operation_lines(self, data_list, work_center_id):
         return tuple(
@@ -59,7 +63,6 @@ class WizBranchWarehouse(models.TransientModel):
         )
 
     def _set_product_type(self, product_type):
-        print("/dddddddddddddddproduct_typeproduct_typeddddd", product_type)
         type = ""
         if product_type.lower() == "storable product":
             type = "product"
@@ -79,6 +82,7 @@ class WizBranchWarehouse(models.TransientModel):
         bom_obj = self.env["mrp.bom"]
         route = self.env["stock.location.route"]
         sale_order_line_obj = self.env["sale.order.line"]
+        bom_operation = self.env["mrp.routing.workcenter"]
         data_list = []
         bom_line_ids = [(5, 0)]
         operation_line_ids = [(5, 0)]
@@ -89,8 +93,12 @@ class WizBranchWarehouse(models.TransientModel):
             old_product_id.bom_ids.unlink()
             old_product_id.unlink()
         qty = 0
+        bom_products_name = ""
+        operation_names = ""
+        total = 0
         for rownum in range(sheet.nrows):
             work_center_id = False
+
             if rownum >= 1:
                 data_list = sheet.row_values(rownum)
                 new_data_list = []
@@ -100,7 +108,8 @@ class WizBranchWarehouse(models.TransientModel):
                 if data_list[0]:
                     qty = data_list[1]
                     name += str(data_list[0])
-                    product_id = product_obj.search([("name", "=", name)], limit=1)
+                    product_id = product_obj.search(
+                        [("name", "=", name)], limit=1)
                     route_list = []
                     for r in data_list[9].split(","):
                         route_id = route.search([("name", "=", r)])
@@ -117,33 +126,46 @@ class WizBranchWarehouse(models.TransientModel):
                         "produce_delay": data_list[4],
                         "description_sale": str(data_list[2]),
                         "route_ids": [(6, 0, route_list)],
+
+
                     }
                     product_id = product_obj.create(values)
                     if data_list[12]:
-                        bom_line_ids.append(
-                            self._create_bom_products(product_obj, data_list)
-                        )
+                        boms, new_bom_product, total = self._create_bom_products(
+                            product_obj, data_list, total, qty)
+                        bom_line_ids.append(boms)
+                        if new_bom_product:
+                            bom_products_name += str(new_bom_product.name)
                     if data_list[18]:
-
                         work_center_id = work_center_obj.search(
-                            [("name", "=", data_list[19])]
+                            [("name", "ilike", data_list[19])]
                         )
+                        operation = bom_operation.search(
+                            [("name", "ilike", data_list[18])])
                         if not work_center_id:
-                            raise UserError(_("Work center not found."))
+                            raise UserError(_("Work center not found.3"))
+                        if not operation:
+                            operation_names += str(data_list[18])
                         operation_line_ids.append(
                             self._operation_lines(data_list, work_center_id)
                         )
 
                 elif data_list[12]:
-                    bom_line_ids.append(
-                        self._create_bom_products(product_obj, data_list)
-                    )
+                    boms, new_bom_product, total = self._create_bom_products(
+                        product_obj, data_list, total, qty)
+                    bom_line_ids.append(boms)
+                    if new_bom_product:
+                        bom_products_name += str(new_bom_product.name)
                     if data_list[18]:
                         work_center_id = work_center_obj.search(
                             [("name", "=", data_list[19])]
                         )
                         if not work_center_id:
-                            raise UserError(_("Work center not found."))
+                            raise UserError(_("Work center not found.1"))
+                        operation = bom_operation.search(
+                            [("name", "ilike", data_list[18])])
+                        if not operation:
+                            operation_names += str(data_list[18])
                         operation_line_ids.append(
                             self._operation_lines(data_list, work_center_id)
                         )
@@ -152,29 +174,28 @@ class WizBranchWarehouse(models.TransientModel):
                         [("name", "=", data_list[19])]
                     )
                     if not work_center_id:
-                        raise UserError(_("Work center not found."))
+                        raise UserError(_("Work center not found.2"))
+                    operation = bom_operation.search(
+                        [("name", "ilike", data_list[18])])
+                    if not operation:
+                        operation_names += str(data_list[18])
                     operation_line_ids.append(
                         self._operation_lines(data_list, work_center_id)
                     )
-                if new_data_list and new_data_list[4]:
-                    if len(product_id.bom_ids.ids) == 1:
-                        product_id.bom_ids.write(
-                            {
-                                "bom_line_ids": bom_line_ids,
-                                "operation_ids": operation_line_ids,
-                            }
-                        )
-                    else:
-                        bom_id = bom_obj.create(
-                            {
-                                "product_tmpl_id": product_id
-                                and product_id.product_tmpl_id.id
-                                or False,
-                                "product_id": product_id and product_id.id or False,
-                                "bom_line_ids": bom_line_ids,
-                                "operation_ids": operation_line_ids,
-                            }
-                        )
+                if new_data_list and new_data_list[0]:
+                    bom_id = bom_obj.create(
+                        {
+                            "product_tmpl_id": product_id
+                            and product_id.product_tmpl_id.id
+                            or False,
+                            "product_id": product_id and product_id.id or False,
+                            "bom_line_ids": bom_line_ids,
+                            "operation_ids": operation_line_ids,
+                        }
+                    )
+                    product_id.write({
+                        'list_price' : total
+                    })
                     bom_line_ids = [(5, 0)]
                     operation_line_ids = [(5, 0)]
                     sale_order_line_obj.create(
@@ -185,6 +206,7 @@ class WizBranchWarehouse(models.TransientModel):
                             "order_id": self.env.context.get("active_id"),
                         }
                     )
+                    total = 0
                     qty = 0
         bom_id = bom_obj.create(
             {
@@ -198,11 +220,27 @@ class WizBranchWarehouse(models.TransientModel):
         )
         bom_line_ids = [(5, 0)]
         operation_line_ids = [(5, 0)]
-        sale_line_id = sale_order_line_obj.create(
+        product_id.write({
+            'list_price' : total
+        })
+        sale_order_line_obj.create(
             {
                 "product_id": product_id.id,
                 "name": product_id.display_name,
                 "product_uom_qty": qty and float(qty) or 0,
+                "price_unit": product_id.lst_price,
                 "order_id": self.env.context.get("active_id"),
             }
         )
+        if bom_products_name:
+            title = _("New Product Creation Succeeded!")
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': title,
+                    'message': bom_products_name,
+                    'sticky': False,
+                }
+            }
+        bom_products_name = False
