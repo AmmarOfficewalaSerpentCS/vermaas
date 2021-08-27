@@ -6,7 +6,7 @@ odoo.define('pos_configurator.pos_configurator',function(require){
     const Registries = require('point_of_sale.Registries');
     const ProductScreen = require('point_of_sale.ProductScreen');
 
-    models.load_fields("product.attribute",['is_height_width']);
+    models.load_fields("product.attribute",['is_height_width', 'is_qty']);
 
 
     models.load_models({
@@ -23,7 +23,8 @@ odoo.define('pos_configurator.pos_configurator',function(require){
                         name: tmp.product_attributes_by_id[ptav.attribute_id[0]].name,
                         display_type: tmp.product_attributes_by_id[ptav.attribute_id[0]].display_type,
                         values: [],
-                        is_height_width : tmp.product_attributes_by_id[ptav.attribute_id[0]].is_height_width
+                        is_height_width : tmp.product_attributes_by_id[ptav.attribute_id[0]].is_height_width,
+                        is_qty : tmp.product_attributes_by_id[ptav.attribute_id[0]].is_qty
                     };
                 }
                 self.attributes_by_ptal_id[ptav.attribute_line_id[0]].values.push({
@@ -45,13 +46,21 @@ odoo.define('pos_configurator.pos_configurator',function(require){
                 let order = this.env.pos.get_order();
                 let qty = 1;
                 order.custom_qty = 0;
+                let total_qty = 0;
                 this.env.attribute_components.forEach((attribute_component) => {
                     let value = attribute_component.state.custom_value;
                     if (attribute_component.attribute.is_height_width){
                         qty = qty * parseFloat(value);
                     }
+                    if (attribute_component.attribute.is_qty){ 
+                        total_qty += parseFloat(value);
+                    }
                 });
-                order.custom_qty = qty
+                if (total_qty > 0 ){
+                    order.custom_qty = qty * total_qty
+                }else{
+                    order.custom_qty = qty
+                }
                 return rec
             }
     };
