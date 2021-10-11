@@ -97,10 +97,12 @@ class WizBranchWarehouse(models.TransientModel):
                     qty = data_list[1]
                     name += str(data_list[0])
                     product_id = product_obj.search([("name", "=", name)], limit=1)
-                    manufacture_route = (
-                        self.env.ref("mrp.route_warehouse0_manufacture").id or False
-                    )
-                    mto_route = self.env.ref("stock.route_warehouse0_mto").id or False
+                    manufacture_route = self.env.ref(
+                        "mrp.route_warehouse0_manufacture", raise_if_not_found=False
+                    ).id
+                    mto_route = self.env.ref(
+                        "stock.route_warehouse0_mto", raise_if_not_found=False
+                    ).id
                     values = {
                         "name": name,
                         "sale_ok": True,
@@ -169,11 +171,11 @@ class WizBranchWarehouse(models.TransientModel):
                     )
                     total = 0
                     qty = 0
-                if data_list[22]:
+                if data_list[11]:
                     sale_rec = self.env[self.env.context.get("active_model")].browse(
                         self.env.context.get("active_id")
                     )
-                    sale_rec.write({"client_order_ref": str(data_list[22])})
+                    sale_rec.write({"client_order_ref": str(data_list[11])})
         bom_id = bom_obj.create(
             {
                 "product_tmpl_id": product_id
