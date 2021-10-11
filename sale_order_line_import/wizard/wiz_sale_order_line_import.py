@@ -23,14 +23,16 @@ class WizBranchWarehouse(models.TransientModel):
     def _bom_products(self, product_obj, data_list, total=0):
         componet_id = False
         componet_id = product_obj.search([("name", "=", str(data_list[6]))], limit=1)
-        # values = {
-        #     "name": data_list[6],
-        #     "categ_id": self.env.ref("product.product_category_all").id,
-        # }
+        values = {
+            "name": data_list[6],
+            "sale_ok": True,
+            "type": "product",
+            "categ_id": self.env.ref("product.product_category_all").id,
+        }
         if not componet_id:
             raise UserError(_("This Product %s not Found.", str(data_list[6])))
-        # else:
-        #     componet_id.write(values)
+        else:
+            componet_id.write(values)
         total += componet_id.standard_price * (data_list[7])
         return (
             tuple(
@@ -95,11 +97,18 @@ class WizBranchWarehouse(models.TransientModel):
                     qty = data_list[1]
                     name += str(data_list[0])
                     product_id = product_obj.search([("name", "=", name)], limit=1)
+                    manufacture_route = (
+                        self.env.ref("mrp.route_warehouse0_manufacture").id or False
+                    )
+                    mto_route = self.env.ref("stock.route_warehouse0_mto").id or False
                     values = {
                         "name": name,
+                        "sale_ok": True,
                         "categ_id": self.env.ref("product.product_category_all").id,
                         "produce_delay": data_list[3],
+                        "type": "product",
                         "description_sale": str(data_list[2]),
+                        "route_ids": [(6, 0, [manufacture_route, mto_route])],
                     }
                     product_id = product_obj.create(values)
                     if data_list[6]:
