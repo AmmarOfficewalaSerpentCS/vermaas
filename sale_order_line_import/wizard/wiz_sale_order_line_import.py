@@ -22,18 +22,18 @@ class WizBranchWarehouse(models.TransientModel):
 
     def _bom_products(self, product_obj, data_list, total=0):
         componet_id = False
-        componet_id = product_obj.search([("name", "=", str(data_list[6]))], limit=1)
+        componet_id = product_obj.search([("name", "=", str(data_list[7]))], limit=1)
         values = {
-            "name": data_list[6],
+            "name": data_list[7],
             "sale_ok": True,
             "type": "product",
             "categ_id": self.env.ref("product.product_category_all").id,
         }
         if not componet_id:
-            raise UserError(_("This Product %s not Found.", str(data_list[6])))
+            raise UserError(_("This Product %s not Found.", str(data_list[7])))
         else:
             componet_id.write(values)
-        total += componet_id.standard_price * (data_list[7])
+        total += componet_id.standard_price * (data_list[8])
         return (
             tuple(
                 (
@@ -41,7 +41,7 @@ class WizBranchWarehouse(models.TransientModel):
                     0,
                     {
                         "product_id": componet_id and componet_id.id or False,
-                        "product_qty": data_list[7],
+                        "product_qty": data_list[8],
                     },
                 )
             ),
@@ -54,10 +54,10 @@ class WizBranchWarehouse(models.TransientModel):
                 0,
                 0,
                 {
-                    "name": data_list[9],
+                    "name": data_list[7],
                     "workcenter_id": work_center_id and work_center_id.id or False,
                     "worksheet_type": "google_slide",
-                    "time_cycle_manual": data_list[10],
+                    "time_cycle_manual": data_list[11],
                 },
             )
         )
@@ -107,18 +107,18 @@ class WizBranchWarehouse(models.TransientModel):
                         "name": name,
                         "sale_ok": True,
                         "categ_id": self.env.ref("product.product_category_all").id,
-                        "produce_delay": data_list[3],
+                        "produce_delay": data_list[4],
                         "type": "product",
                         "description_sale": str(data_list[2]),
                         "route_ids": [(6, 0, [manufacture_route, mto_route])],
                     }
                     product_id = product_obj.create(values)
-                    if data_list[6]:
+                    if data_list[7]:
                         boms, total = self._bom_products(product_obj, data_list, total)
                         bom_line_ids.append(boms)
-                    if data_list[9]:
+                    if data_list[10]:
                         work_center_id = work_center_obj.search(
-                            [("name", "ilike", data_list[9])]
+                            [("name", "ilike", data_list[10])]
                         )
                         if not work_center_id:
                             raise UserError(_("Work center not found"))
@@ -126,21 +126,21 @@ class WizBranchWarehouse(models.TransientModel):
                             self._operation_lines(data_list, work_center_id)
                         )
 
-                elif data_list[6]:
+                elif data_list[7]:
                     boms, total = self._bom_products(product_obj, data_list, total)
                     bom_line_ids.append(boms)
-                    if data_list[9]:
+                    if data_list[10]:
                         work_center_id = work_center_obj.search(
-                            [("name", "=", data_list[9])]
+                            [("name", "=", data_list[10])]
                         )
                         if not work_center_id:
                             raise UserError(_("Work center not found."))
                         operation_line_ids.append(
                             self._operation_lines(data_list, work_center_id)
                         )
-                elif data_list[9]:
+                elif data_list[10]:
                     work_center_id = work_center_obj.search(
-                        [("name", "=", data_list[9])]
+                        [("name", "=", data_list[10])]
                     )
                     if not work_center_id:
                         raise UserError(_("Work center not found."))
@@ -171,11 +171,12 @@ class WizBranchWarehouse(models.TransientModel):
                     )
                     total = 0
                     qty = 0
-                if data_list[11]:
+                # data_list[14] for Client Order Ref
+                if data_list[14]:
                     sale_rec = self.env[self.env.context.get("active_model")].browse(
                         self.env.context.get("active_id")
                     )
-                    sale_rec.write({"client_order_ref": str(data_list[11])})
+                    sale_rec.write({"client_order_ref": str(data_list[14])})
         bom_id = bom_obj.create(
             {
                 "product_tmpl_id": product_id
