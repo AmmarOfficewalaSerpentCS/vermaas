@@ -172,7 +172,7 @@ class WizBranchWarehouse(models.TransientModel):
                     total = 0
                     qty = 0
                 # data_list[14] for Client Order Ref
-                if data_list[14]:
+                if len(data_list) > 14 and data_list[14]:
                     sale_rec = self.env[self.env.context.get("active_model")].browse(
                         self.env.context.get("active_id")
                     )
