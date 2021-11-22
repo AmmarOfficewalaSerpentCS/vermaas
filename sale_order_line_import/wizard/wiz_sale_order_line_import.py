@@ -54,7 +54,7 @@ class WizBranchWarehouse(models.TransientModel):
                 0,
                 0,
                 {
-                    "name": data_list[7],
+                    "name": data_list[9],
                     "workcenter_id": work_center_id and work_center_id.id or False,
                     "worksheet_type": "google_slide",
                     "time_cycle_manual": data_list[11],
@@ -84,6 +84,7 @@ class WizBranchWarehouse(models.TransientModel):
             old_product_id.unlink()
         qty = 0
         total = 0
+        description_sale = ''
         for rownum in range(sheet.nrows):
             work_center_id = False
 
@@ -94,12 +95,15 @@ class WizBranchWarehouse(models.TransientModel):
                     new_data_list = sheet.row_values(rownum + 1)
                 name = ""
                 if data_list[0]:
+                    description_sale = ''
+                    
                     qty = data_list[1]
                     name += str(data_list[0])
                     product_id = product_obj.search([("name", "=", name)], limit=1)
                     manufacture_route = self.env.ref(
                         "mrp.route_warehouse0_manufacture", raise_if_not_found=False
                     ).id
+                    description_sale = str(data_list[2])
                     mto_route = self.env.ref(
                         "stock.route_warehouse0_mto", raise_if_not_found=False
                     ).id
@@ -164,7 +168,7 @@ class WizBranchWarehouse(models.TransientModel):
                     sale_order_line_obj.create(
                         {
                             "product_id": product_id.id,
-                            "name": product_id.display_name,
+                            "name": description_sale or product_id.display_name,
                             "product_uom_qty": qty and float(qty) or 0,
                             "order_id": self.env.context.get("active_id"),
                         }
@@ -193,7 +197,7 @@ class WizBranchWarehouse(models.TransientModel):
         sale_order_line_obj.create(
             {
                 "product_id": product_id.id,
-                "name": product_id.display_name,
+                "name": description_sale or product_id.display_name,
                 "product_uom_qty": qty and float(qty) or 0,
                 "price_unit": product_id.lst_price,
                 "order_id": self.env.context.get("active_id"),
