@@ -78,6 +78,8 @@ class WizBranchWarehouse(models.TransientModel):
         for line in (
             self.env["sale.order"].browse(self.env.context.get("active_id")).order_line
         ):
+            if line.is_downpayment:
+                continue
             old_product_id = line.product_id
             line.unlink()
             old_product_id.bom_ids.unlink()
